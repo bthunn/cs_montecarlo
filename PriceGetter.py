@@ -3,6 +3,7 @@ import requests
 import time
 import os
 import re
+from datetime import date
 
 class PriceGetter:
     def __init__(self, item_list, cookies):
@@ -43,7 +44,7 @@ class PriceGetter:
         for i in range(range_):
             item = self.item_list[i]
 
-            if not os.path.exists(f"data\\price-data\\{_replace_invalid_chars_for_filepath(item)}.json"):
+            if not os.path.exists(f"data\\price-data-{date.today()}\\{_replace_invalid_chars_for_filepath(item)}.json"):
                 request_interval = 0 # wait time in s
                 data, status_code = self.get_item_data(f"{self.base_url}{item}")
                 while status_code != 200:
@@ -54,7 +55,7 @@ class PriceGetter:
                     else:
                         print(f"Request failed, status: {status_code}")
                 
-                with open(f'data\\price-data\\{_replace_invalid_chars_for_filepath(item)}.json', 'w', encoding="utf-8") as file:
+                with open(f'data\\price-data-{date.today()}\\{_replace_invalid_chars_for_filepath(item)}.json', 'w', encoding="utf-8") as file:
                     file.write(json.dumps(data, ensure_ascii=False))
                 
                 print(f"Data for item: {_replace_unprintable(item)} succesfully retrieved")
