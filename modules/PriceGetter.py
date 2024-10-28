@@ -4,6 +4,8 @@ import time
 import os
 import re
 from datetime import date
+import sys
+from modules import functions as fn
 
 class PriceGetter:
     def __init__(self, item_list, cookies):
@@ -31,12 +33,6 @@ class PriceGetter:
         return data, response.status_code
 
     def get_data_for_item_list(self):
-        def _replace_unprintable(text, placeholder='?'):
-            # Encode the string to bytes, ignoring errors, then decode back to string
-            return text.encode('ascii', 'replace').decode().replace('?', placeholder)
-        def _replace_invalid_chars_for_filepath(text, placeholder='-'):
-            invalid_chars = r'[<>:"/\\|?*]'
-            return re.sub(invalid_chars, placeholder, _replace_unprintable(text))
         
         range_ = len(self.item_list)
         # range_ = 3
@@ -44,7 +40,7 @@ class PriceGetter:
         for i in range(range_):
             item = self.item_list[i]
 
-            if not os.path.exists(f"data\\price-data-{date.today()}\\{_replace_invalid_chars_for_filepath(item)}.json"):
+            if not os.path.exists(f"data\\price-data-{date.today()}\\{fn.replace_invalid_chars_for_filepath(item)}.json"):
                 request_interval = 0 # wait time in s
                 data, status_code = self.get_item_data(f"{self.base_url}{item}")
                 while status_code != 200:
@@ -55,14 +51,14 @@ class PriceGetter:
                     else:
                         print(f"Request failed, status: {status_code}")
                 
-                with open(f'data\\price-data-{date.today()}\\{_replace_invalid_chars_for_filepath(item)}.json', 'w', encoding="utf-8") as file:
+                with open(f'data\\price-data-{date.today()}\\{fn.replace_invalid_chars_for_filepath(item)}.json', 'w', encoding="utf-8") as file:
                     file.write(json.dumps(data, ensure_ascii=False))
                 
-                print(f"Data for item: {_replace_unprintable(item)} succesfully retrieved")
+                print(f"Data for item: {fn.replace_unprintable(item)} succesfully retrieved")
                 # print(f"contents: {_replace_unprintable(data)}")
                 item_price_list[i] = data
             else:
-                print(f"Data for item: {_replace_unprintable(item)} already exists, skipping request")
+                print(f"Data for item: {fn.replace_unprintable(item)} already exists, skipping request")
         return item_price_list
         
         # for item in item_price_list:
