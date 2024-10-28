@@ -6,44 +6,108 @@ import json
 from datetime import datetime
 from datetime import date
 import pandas as pd
-import scipy
+import os
+from PriceGetter import PriceGetter
+
 
 BASE_URL = "https://steamcommunity.com/market/pricehistory/"
 
 def main():
+    temp()
 
-    # get data from JSON
-    raw_data = marketData(
+def temp():
+    test_inv_raw_data = loadJSON(
+    r"F:\programs\python\cs_montecarlo\data\test-inventory-from-steamwebapi-2024-10-28.json" # filepath of list of inv items, from steam web api
+        ).data
+    
+    # browse session cookies. Update as necessary by viewing Network -> search:"domain:steamcommunity.com scheme:https"
+    # and find 'cookie:'. These fields will be included, copy them in
+    cookies = {
+        "sessionid": "1bc5949f3ee1adabe5bc6c2a",
+        "steamLoginSecure": "76561198149693785%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTAyOF8yNTQxQ0EzN18zODFFRCIsICJzdWIiOiAiNzY1NjExOTgxNDk2OTM3ODUiLCAiYXVkIjogWyAid2ViOmNvbW11bml0eSIgXSwgImV4cCI6IDE3MzAxODAyNzEsICJuYmYiOiAxNzIxNDUyMTU4LCAiaWF0IjogMTczMDA5MjE1OCwgImp0aSI6ICIxMDIxXzI1NDFDQTM2XzcxQjI0IiwgIm9hdCI6IDE3MzAwOTIxNTgsICJydF9leHAiOiAxNzMyNjcxNjI4LCAicGVyIjogMCwgImlwX3N1YmplY3QiOiAiMTQzLjE1OS4xNzIuMTE0IiwgImlwX2NvbmZpcm1lciI6ICIxNDMuMTU5LjE3Mi4xMTQiIH0.DvBClrpajLmQXgbfRJH5JvhnpEcrpOc0IE-U7up7jefTjfNnTjYeGh0sRTVbAXR2sqMcT3uOJJAWDupwBtKZAQ"
+    }
+
+    test_inventory = InventoryData(test_inv_raw_data)
+    # price_getter = PriceGetter(item_list=test_inventory.item_list_marketable, cookies=cookies)
+    # # format of item_price_list is a list of price data responses, so a list of dictionaries
+    # item_price_list = price_getter.get_data_for_item_list() 
+    # with open(f'data\\test-inv-price-data-set-{date.today()}.json', 'w', encoding="utf-8") as file:
+    #         file.write(json.dumps(item_price_list, ensure_ascii=False))
+
+
+        
+
+def main_wrapped():
+        # get data from JSON
+    raw_data = loadJSON(
         r"F:\programs\python\cs_montecarlo\data\pricedata_awp_redline_minwear.json"
             )
-    
+
     # process data
-    test_data = Data(raw_data.data)
+    test_data = ItemData(raw_data.data)
 
     #plot data
     start_date = date(2014,1,1)
-    test_data.plot_cleaned_data(start_date)
+    #test_data.plot_cleaned_data(start_date)
     
     #generate model
     test_model = GBMModel(test_data)
 
 
-    # fig, ax = plt.subplots()
-    # ax.plot(test_data.dates[1:], test_model.log_returns)
-    # ax.xaxis.set_major_locator(mdates.YearLocator())
-    # ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-    # plt.grid()
-    # plt.show()
 
-    # # endpoint = get_request("gb", "3", "AWP", "Redline", "Minimal%20Wear")
+class InventoryData:
+    def __init__(self, raw_json):
+        self.raw_json = raw_json
+        self.item_list = self._get_list_of_market_hash_names()
+        self.item_list_marketable = self._get_list_of_filtered_market_hash_names()
 
 
-def get_request(country, currency, item_name, skin_name, condition):
-    # UK = gb
-    # gbp = 3
-    endpoint = f'{BASE_URL}?country={country}&currency={currency}\
-        &appid=730&market_hash_name={item_name}%20|%20{skin_name}%20({condition})'
+    def _get_list_of_market_hash_names(self):
+        item_list = [item['markethashname'] for item in self.raw_json]
+        item_list_spaces_replaced = [item.replace(" ", "%20") for item in item_list]
+        
+        # with open('item_market_hash_name_list.json', 'w', encoding="utf-8") as file:
+        #     file.write(json.dumps(item_list_spaces_replaced, ensure_ascii=False))
+        
+        return item_list_spaces_replaced
+    
+    def _get_list_of_filtered_market_hash_names(self):
+        mask = [item['marketable'] for item in self.raw_json]
+        item_list_marketable = []
+        for i in range(len(self.item_list)):
+            if mask[i] == True:
+                item_list_marketable.append(self.item_list[i])
+        item_list_spaces_replaced = [item.replace(" ", "%20") for item in item_list_marketable]
+        
+        return item_list_spaces_replaced
+    
+
+class ApiHandler:
+    def __init__(self, base_url):
+        self.base_url = base_url        
+
+class SteamApiHandler(ApiHandler):
+    def __init__(self, base_url):
+        super().__init__(base_url)
+
+    def get_item_price_history(self, params:list):
+        country, currency, item_name, skin_name, condition = params
+        endpoint = f'{BASE_URL}?country={country}&currency={currency}\
+                     &appid=730&market_hash_name={item_name}%20|%20{skin_name}%20({condition})'
+        return endpoint
+
+class SteamWebApiHandler(ApiHandler):
+    def __init__(self, base_url, api_key):
+        super().__init__(base_url)
+        self.api_key = api_key
+
+
+def get_request(item_name, skin_name, condition):
+    country = 'gb'
+    currency = '3'
+    endpoint = f'{BASE_URL}?country={country}&currency={currency}\&appid=730&market_hash_name={item_name}%20|%20{skin_name}%20({condition})'
     return endpoint
+
 
 def display_chart(prices, converted_dates):
     fig, ax = plt.subplots()
@@ -54,7 +118,7 @@ def display_chart(prices, converted_dates):
     plt.show()
 
 
-class Data:
+class ItemData:
     def __init__(self, raw_data):
         self.raw_data = raw_data
         self.data_handler = dataHandler(self.raw_data)
@@ -68,7 +132,7 @@ class Data:
         dataCleaner.plot_cleaned_data(self.data_cleaner, start_date, end_date)
 
 class Model2:
-    def __init__(self, data:Data):
+    def __init__(self, data:ItemData):
         self.data = data
         self.latest_date = data.dates[-1]
         self.stock_price = data.prices_all[-1]
@@ -78,7 +142,7 @@ class Model2:
         
 
 class GBMModel:
-    def __init__(self, data:Data):
+    def __init__(self, data:ItemData):
         self.data = data
         self.latest_date = data.dates[-1]
         self.stock_price = data.prices_all[-1]
@@ -102,12 +166,12 @@ class GBMModel:
         pass
 
 
-class marketData:
+class loadJSON:
     def __init__(self, path):
         self.data = self._get_data_from_json(path)
 
     def _get_data_from_json(self, path):
-        with open(path) as file:
+        with open(path, 'r', encoding="utf-8") as file:
             data = json.load(file)
             return data
         
