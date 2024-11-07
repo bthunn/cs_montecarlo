@@ -7,12 +7,15 @@ import numpy as np
 
 
 class DataProcessor:
-    def __init__(self, raw_data):
+    def __init__(self, raw_data): # pass in ITEM DATA
         self.item_data = ItemData(raw_data)
-        self.processed_item_data = self.item_data.prices_clean
 
-    def get_processed_item_data(self):
-        return self.processed_item_data
+    def get_processed_item_prices(self): # return list of prices
+        return self.item_data.prices_clean
+    
+    def get_processed_item_data(self): # return 2d list of dates and prices
+        return self.item_data.processed_item_data
+
 
 
 class ItemData:
@@ -24,9 +27,17 @@ class ItemData:
         self.data_cleaner = dataCleaner(prices=self.prices_all, dates=self.dates)
         self.df = self.data_cleaner.df
         self.prices_clean = self.df['Filtered_Price_Interp'].tolist()
+        self.processed_item_data = self._generate_2d_processed_data()
 
     def plot_cleaned_data(self, start_date=date(1900,1,1), end_date=date(1900,1,1)):
         dataCleaner.plot_cleaned_data(self.data_cleaner, start_date, end_date)
+
+    def _generate_2d_processed_data(self):
+        data = [0] * len(self.prices_clean)
+        for i in range(len(self.prices_clean)):
+            data[i] = [self.dates[i], self.prices_clean[i]]
+
+        return data
 
 
 class DataHandler:
