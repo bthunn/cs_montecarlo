@@ -16,6 +16,10 @@ from modules.Simulation import Simulation
 
 BASE_URL = "https://steamcommunity.com/market/pricehistory/"
 
+# to get inventory list, use https://steamcommunity.com/profiles/76561198149693785/inventory/json/730/2
+# where the large number is the profile ID and 730 is CS2's game ID
+
+
 def main():
     sub_main()
 
@@ -23,10 +27,15 @@ def sub_main():
     # base directory containing data for items
     item_data_base_path = r"F:\programs\python\cs_montecarlo\data\price-data-2024-10-28"
 
-    test_inv_raw_data = loadJSON(
-    r"F:\programs\python\cs_montecarlo\data\test-inventory-from-steamwebapi-2024-10-28.json" # filepath of list of inv items, from steam web api
-        ).data
+    # test_inv_raw_data = loadJSON(
+    # r"F:\programs\python\cs_montecarlo\data\test-inventory-from-steamwebapi-2024-10-28.json" # filepath of list of inv items, from steam web api
+    #     ).data
     
+    # TEST:
+    test_inv_raw_data = loadJSON(
+    r"F:\programs\python\cs_montecarlo\data\one-item-inv-test.json" # filepath of list of inv items, from steam web api
+        ).data
+
     # HOW TO GET VALUES:
     # browse session cookies. Update as necessary by viewing Network -> search:"domain:steamcommunity.com scheme:https"
     # and find 'cookie:'. These fields will be included, copy them in
@@ -36,7 +45,8 @@ def sub_main():
     }
 
     test_inventory = InventoryData(test_inv_raw_data, item_data_base_path)
-    print(test_inventory.data_frame)
+    print(test_inventory.data_frame.loc[0])
+
 
     # price_getter = PriceGetter(item_list=test_inventory.item_list_marketable, cookies=cookies)
     # # format of item_price_list is a list of price data responses, so a list of dictionaries
@@ -46,11 +56,11 @@ def sub_main():
 
 class InventoryData:
     def __init__(self, raw_inv_json, item_data_base_path):
-        self.raw_json = raw_inv_json
+        self.raw_json = raw_inv_json # retrieves 
         self.item_data_base_path = item_data_base_path
     
-        self.item_list = self._get_list_of_market_hash_names()
-        self.item_list_marketable = self._get_list_of_filtered_market_hash_names() # gets only items listed on market
+        self.item_list = self._get_list_of_market_hash_names() # gets list of items in inv from raw_json
+        self.item_list_marketable = self._get_list_of_filtered_market_hash_names() # gets items listed on market
 
         # raises excpetion if check fails.
         if self._check_inv_item_data_present: 
@@ -97,7 +107,7 @@ class InventoryData:
         else:
             return True
 
-    def _load_item_price_data_to_dict(self):
+    def _load_item_price_data_to_dict(self): # creates dict of items, with each entry contraining respective price history
         # item_price_list = []
         item_price_dict = {}
         for i in range(len(self.item_list_marketable)):
@@ -168,15 +178,11 @@ class InventoryData:
         return aligned_dict
     
     def _format_to_dataframe(self):
-        for item in self.aligned_dict:
-            print(len(item))
-        print(self.aligned_dict[fn.replace_invalid_chars_for_filepath(self.item_list_marketable[0])])
+        # for item in self.aligned_dict:
+        #     print(len(item))
+        # print(self.aligned_dict[fn.replace_invalid_chars_for_filepath(self.item_list_marketable[0])])
 
-        # return pd.DataFrame.from_dict(self.aligned_dict)
-
-
-
-
+        return pd.DataFrame.from_dict(self.aligned_dict)
 
 
 class loadJSON:
@@ -187,6 +193,7 @@ class loadJSON:
         with open(path, 'r', encoding="utf-8") as file:
             data = json.load(file)
             return data
+
 
 def get_request(item_name, skin_name, condition):
     country = 'gb'

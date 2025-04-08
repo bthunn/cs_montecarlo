@@ -17,7 +17,6 @@ class DataProcessor:
         return self.item_data.processed_item_data
 
 
-
 class ItemData:
     def __init__(self, raw_data):
         self.raw_data = raw_data
@@ -92,7 +91,10 @@ class dataCleaner:
     def _interpolate_missing_values(self, df_outliers_removed):
         df = df_outliers_removed
 
-        dates = df.index.tolist()
+        # dates = df.index.tolist() # BROKEN: outliers already removed!
+        dates = self.dates
+        # print(dates)
+
         datetimes = pd.to_datetime(dates)
         # print(type(datetimes))
         prices = df['Filtered_Price'].tolist()
