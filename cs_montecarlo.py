@@ -8,10 +8,12 @@ from datetime import date
 import pandas as pd
 import pandas_datareader as pdr
 import os
+
 from modules.PriceGetter import PriceGetter
 from modules import functions as fn
 from modules.InventoryConstructor import InventoryData
 from modules.Simulation import Simulation
+from modules import visuals as vis
 
 
 BASE_URL = "https://steamcommunity.com/market/pricehistory/"
@@ -34,10 +36,10 @@ def sub_main():
     #     ).data
     
     # TEST:
-    test_inv_raw_data = loadJSON(
-    r"F:\programs\python\cs_montecarlo\data\one-item-inv-test.json" # filepath of list of inv items, from steam web api
+    test_inv_raw_data = fn.loadJSON(
+    r"F:\programs\python\cs_montecarlo\data\one-item-inv.json" # filepath of list of inv items, from steam web api
         ).data
-
+ 
     # HOW TO GET VALUES:
     # browse session cookies. Update as necessary by viewing Network -> search:"domain:steamcommunity.com scheme:https"
     # and find 'cookie:'. These fields will be included, copy them in
@@ -47,7 +49,7 @@ def sub_main():
     }
 
     test_inventory = InventoryData(test_inv_raw_data, item_data_base_path).inv_data_frame
-    print(test_inventory.loc[0])
+    # sim = Simulation(test_inventory)
 
 
     # price_getter = PriceGetter(item_list=test_inventory.item_list_marketable, cookies=cookies)
@@ -55,17 +57,6 @@ def sub_main():
     # item_price_list = price_getter.get_data_for_item_list() 
     # with open(f'data\\test-inv-price-data-set-{date.today()}.json', 'w', encoding="utf-8") as file:
     #         file.write(json.dumps(item_price_list, ensure_ascii=False))
-
-
-
-class loadJSON:
-    def __init__(self, path):
-        self.data = self._get_data_from_json(path)
-
-    def _get_data_from_json(self, path):
-        with open(path, 'r', encoding="utf-8") as file:
-            data = json.load(file)
-            return data
 
 
 
