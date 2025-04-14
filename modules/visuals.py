@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import AutoMinorLocator
 
 def custom_month_formatter(x, pos):
     date = mdates.num2date(x)
@@ -11,7 +14,9 @@ def custom_month_formatter(x, pos):
     else:
         return date.strftime('')
 
-
+def pounds(x, pos):
+    return f'£{x:,.0f}'
+    
 def basic_plot(x,y):
     plt.plot(x, y, marker="x", markersize="7", linestyle="None")
     plt.show()
@@ -31,23 +36,35 @@ def best_fit_plot(x, y):
     plt.show()
 
 
-def outlier_plot(price_series:pd.Series, outliers):
+def outlier_plot(price_series:pd.Series, outliers:pd.Series, interped:pd.Series=None):
     fig, ax = plt.subplots()
 
     # Plot the price data
-    ax.plot(price_series, label='Price Data', color='blue', marker="x")
+    ax.plot(price_series, label='Price Data', color='black', marker="None", zorder=0, markersize='5', linewidth='1')
 
     # Plot the outlier points in red
-    ax.scatter(outliers.index, outliers.values, color='red', label='Outliers')
+    ax.scatter(outliers.index, outliers.values, color='red', label='Outliers', s=8, zorder=10)
+    if not interped.empty:
+        # ax.scatter(interped.index, interped.values, color='blue', label='Filled Values', s=10, marker ,zorder=5)
+        ax.plot(interped.index, interped.values, color='purple', label='Forward-filled values', markersize='6', linestyle="None",
+                marker='s', markerfacecolor='None', zorder=5)
 
-    ax.xaxis.set_major_locator(mdates.MonthLocator())
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(custom_month_formatter))
+    ax.minorticks_on()
+    ax.grid(visible=True, which='major', axis='both', linewidth=0.8)
+    ax.grid(visible=True, which='minor', axis='both', linewidth=0.4, linestyle='--')
+    ax.xaxis.set_major_locator(mdates.YearLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    ax.xaxis.set_minor_locator(AutoMinorLocator(12, ))
+    ax.yaxis.set_major_formatter(FuncFormatter(pounds))
+    ax.set_ylim((0, None))
+
+
 
     # Customize plot
-    plt.title('Price Data with Outliers')
+    plt.title('Price Data with Outliers and Forward-Filled Prices', fontsize=20)
     plt.xlabel('Date')
     plt.ylabel('Price')
-    plt.legend()
+    plt.legend(loc='upper center', fontsize=16)
 
     # Show the plot
     plt.xticks(rotation=45)

@@ -36,9 +36,10 @@ def sub_main():
     #     ).data
     
     # TEST:
-    test_inv_raw_data = fn.loadJSON(
-    r"F:\programs\python\cs_montecarlo\data\three-item-inv.json" # filepath of list of inv items, from steam web api
-        ).data
+    # inv_path = r"F:\programs\python\cs_montecarlo\data\test-inventory-from-steamwebapi-2024-10-28.json"
+    inv_path = r"F:\programs\python\cs_montecarlo\data\two-item-inv.json"
+    test_inv_raw_data = fn.loadJSON(inv_path).data # filepath of list of inv items, from steam web api
+    
  
     # HOW TO GET VALUES:
     # browse session cookies. Update as necessary by viewing Network -> search:"domain:steamcommunity.com scheme:https"
@@ -48,7 +49,8 @@ def sub_main():
         "steamLoginSecure": "76561198149693785%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTAyOF8yNTQxQ0EzN18zODFFRCIsICJzdWIiOiAiNzY1NjExOTgxNDk2OTM3ODUiLCAiYXVkIjogWyAid2ViOmNvbW11bml0eSIgXSwgImV4cCI6IDE3MzAxODAyNzEsICJuYmYiOiAxNzIxNDUyMTU4LCAiaWF0IjogMTczMDA5MjE1OCwgImp0aSI6ICIxMDIxXzI1NDFDQTM2XzcxQjI0IiwgIm9hdCI6IDE3MzAwOTIxNTgsICJydF9leHAiOiAxNzMyNjcxNjI4LCAicGVyIjogMCwgImlwX3N1YmplY3QiOiAiMTQzLjE1OS4xNzIuMTE0IiwgImlwX2NvbmZpcm1lciI6ICIxNDMuMTU5LjE3Mi4xMTQiIH0.DvBClrpajLmQXgbfRJH5JvhnpEcrpOc0IE-U7up7jefTjfNnTjYeGh0sRTVbAXR2sqMcT3uOJJAWDupwBtKZAQ"
     }
 
-    test_inventory = InventoryData(test_inv_raw_data, item_data_base_path).inv_data_frame
+    test_inventory = InventoryData(test_inv_raw_data, item_data_base_path).df_filtered
+    print(test_inventory.columns)
     # sim = Simulation(test_inventory)
 
 

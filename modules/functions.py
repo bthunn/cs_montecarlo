@@ -2,6 +2,7 @@ import re
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import json
+import pandas as pd
 
 class loadJSON:
     def __init__(self, path):
@@ -34,6 +35,16 @@ def display_chart(prices, converted_dates):
     plt.grid()
     plt.show()
 
+
+def export_series_to_json(self, series:pd.Series, filepath): # as dict
+    series_dict = {}
+    for date in series.index:
+        price = series.loc[date]
+        date_str = date.strftime("%Y-%m-%d")
+        series_dict.update({date_str : price})
+
+    with open(filepath, "w") as f:
+        json.dump(series_dict, f)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,6 @@ def detect_outliers_rolling_med(s, window=7, threshold=10): # performance: good
 
     rolling_med = s.rolling(window=window, center=False, min_periods=3).median()
     z = (s - rolling_med)/(0.01*rolling_med)
-    print(z.to_list())
     return z.abs() > threshold
 
 
@@ -77,7 +76,6 @@ def detect_isolated(s:pd.Series, tolerance):
             left = max(0, i - tolerance)
             right = min(len(s_dates), i + tolerance)
             window = nan_mask[left:right]
-            print(sum(window))
             if sum(window) <= 2:
                 isolated_dict.update({s_dates[i]: s_prices[i]})
 

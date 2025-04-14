@@ -52,10 +52,12 @@ class InventoryData:
         if self._check_inv_item_data_present: # raises excpetion if check fails.
             self.price_data_dict = self._load_item_price_data_to_dict() # dict in format {"item" : [prices]}
             # self.raw_price_data_dict = self._get_raw_price_data() # ONLY NEEDED IF EXTRACTING RAW DATA, COMMENT OUT OTHERWISE
-            self.cleaned_price_data_dict = self._process_price_data() # keys in filename format (incompatable chars replaced). CREATES "DataProcessor" for each item
-            self.date_interval = self._find_date_interval()
-            print(self.date_interval)
-            self.aligned_dict = self._make_aligned_dict()
+            self.df_full, self.df_filtered, self.date_interval = self._process_price_data_as_df() # adds series iteratively to a df as columns
+                        
+            # OLD dict method:
+            # self.date_interval = self._find_date_interval()
+            # print(self.date_interval)
+            # self.aligned_dict = self._make_aligned_dict()
 
             # testing:
             # print(self.aligned_dict.keys())
@@ -63,7 +65,7 @@ class InventoryData:
             #     print(f"key: {key} items: {len(item)}")
             #####################
 
-            self.inv_data_frame = self._format_to_dataframe() # FINAL 
+            # self.inv_data_frame = self._format_to_dataframe() # FINAL 
         
 
 
@@ -143,13 +145,13 @@ class InventoryData:
             raise Exception("ERROR dict keys don't match after data processing")
 
 
-    def _process_price_data(self): # runs DataProcessor.get_processed_item_data() on each dict entry
+    def _process_price_data(self): # (OLD) runs DataProcessor.get_processed_item_data() on each dict entry
         cleaned_price_data_dict = {}
         for item_name, price_data in self.price_data_dict.items():
             print(f"Now processing item: \"{item_name}\"")
             data_processor = DataProcessor(price_data)
             cleaned_price_data_dict.update(
-                {f"{item_name}": data_processor.get_processed_item_data()}
+                {f"{item_name}": data_processor.get_processed_item_data_as_list()}
                 )
 
         if self.price_data_dict.keys() == cleaned_price_data_dict.keys(): # check keys match
@@ -197,16 +199,47 @@ class InventoryData:
         return pd.DataFrame.from_dict(self.aligned_dict)
 
 
+    def _process_price_data_as_df(self):
+        date_range = [date(2013,8,1), date.today()] # all possible dates included atp
+        date_list = pd.date_range(start=date_range[0], end=date_range[1])
+        date_list = [dt.date() for dt in date_list]
+        df = pd.DataFrame(None, index=date_list)
+        start_date = date(1900,1,1)
+        end_date = date.today() + timedelta(days=1)
+        for item_name, price_data in self.price_data_dict.items():
+            print(f"Now processing item: \"{item_name}\"")
+
+            data_processor = DataProcessor(price_data)
+            item_data = data_processor.get_processed_item_data() # series
+            df[item_name] = item_data
+
+            # updates date_lims to the smallest available date range
+            if item_data.index[0] > start_date:
+                start_date = item_data.index[0]
+            if item_data.index[-1] < end_date:
+                end_date = item_data.index[-1]
+
+        if len(df.columns) == len(self.price_data_dict):
+            return df, df[start_date:end_date], [start_date, end_date]
+        else:
+            raise Exception("ERROR number of df columns don't match number of items after data processing")
+        
+
+
 
 class DataProcessor: # basically just wraps ItemData. Probably shouldn't exist
     def __init__(self, price_data): # pass in ITEM PRICE DATA
         self.item_data = ItemData(price_data)
        
-    def get_processed_item_prices(self): # return list of prices
-        return self.item_data.prices_clean
+    # def get_processed_item_prices(self): # return list of prices
+    #     return self.item_data.prices_clean
     
-    def get_processed_item_data(self): # return 2d list of dates and prices
-        return self.item_data.processed_item_data
+    def get_processed_item_data(self): # returns a series
+        return self.item_data.series
+    
+    def get_processed_item_data_as_list(self):
+        return
+        
     
     def get_raw_data(self):
         return self.item_data.price_data
@@ -217,14 +250,15 @@ class ItemData:
     def __init__(self, raw_data):
         self.raw_data = raw_data
         self.data_handler = DataHandler(self.raw_data)
-        self.prices_all = self.data_handler.prices
-        self.dates = self.data_handler.dates
-        self.price_data = self.data_handler.zipped_data # dates and prices in a list of tuples
-        self.data_cleaner = dataCleaner(self.price_data)
+        # prices_all = self.data_handler.prices
+        # sdates = self.data_handler.dates
+        self.price_data = self.data_handler.zipped_data # dates and prices in a 2d list
+        data_cleaner = dataCleaner(self.price_data)
 
-        self.df = self.data_cleaner.df
-        self.prices_clean = self.df['Filtered_Price_Interp'].tolist()
-        self.processed_item_data = self._generate_2d_processed_data()
+        # final product:
+        self.series = data_cleaner.series_clean
+
+        # self.processed_item_data = self._generate_2d_processed_data()
 
     def plot_cleaned_data(self, start_date=date(1900,1,1), end_date=date(1900,1,1)):
         dataCleaner.plot_cleaned_data(self.data_cleaner, start_date, end_date)
@@ -277,70 +311,45 @@ class dataCleaner: # filters outliers, interpolates missing data. SET DATA CLEAN
         self.window_size = 7
         self.threshold = 3.5 # sets the modified z score theshold
         self.eps = 1 # sets the offset added to the MAD (to ignore small price fluctuations when MAD is low)
-        self.mad_cap = 1 # sets the minimum MAD, preventing high volatility from hiding outliers
+        self.mad_cap = 10 # sets the minimum MAD, preventing high volatility from hiding outliers
         self.raw_data = raw_data # 2D list of dates and prices
         raw_dates, raw_prices = self._unzip_raw_data(raw_data)
 
         self.series_no_dupes_no_gaps = self._construct_series(raw_data, raw_dates, raw_prices)
-        # outliers_rolling_med = self._flag_outliers_med(self.series_no_dupes_no_gaps, window = 10, threshold=20)
+        self.outliers = self._find_outliers(self.series_no_dupes_no_gaps)
+        self.series_clean, self.interpolated = self._handle_outliers(self.series_no_dupes_no_gaps, self.outliers, raw_dates)
+        self.series_clean.sort_index(inplace=True)
 
-        outliers_right = self._flag_outliers(self.series_no_dupes_no_gaps, window=self.window_size,
-                                             threshold=self.threshold, eps=self.eps, mad_cap=self.mad_cap,
-                                             func=dat.detect_outliers_modified_z_modified) # outliers is a series
-        outliers_left = self._flag_outliers(self.series_no_dupes_no_gaps, window=self.window_size,
-                                            threshold=self.threshold, eps=self.eps, mad_cap=self.mad_cap,
-                                            func=dat.detect_outliers_modified_z_modified_left) # outliers is a series
-        isolated_dict = dat.detect_isolated(self.series_no_dupes_no_gaps, tolerance=3)
-        # out1_dict = outliers_rolling_med.to_dict()
-        # print(out1_dict)
-        out2_dict = outliers_right.to_dict()
-        print(out2_dict)
-        out3_dict = outliers_left.to_dict()
-        print(out3_dict)
-        self.outliers = {**isolated_dict, **out2_dict}
-        self.outliers = {**self.outliers, **out3_dict}
-        # self.outliers = {**out2_dict, **out3_dict}
-        self.outliers = pd.Series(self.outliers)
-        self.outliers.sort_index(inplace=True)
-        # print(self.outliers)
-
-        vis.outlier_plot(self.series_no_dupes_no_gaps, self.outliers)
-        series_no_outliers = self._delete_outliers(self.series_no_dupes_no_gaps, self.outliers)
-        self.series_no_dupes_no_gaps_no_outliers = self._remove_date_gaps(raw_dates, series_no_outliers)
-        # vis.outlier_plot(self.series_no_dupes_no_gaps_no_outliers, self.outliers)
-        # print(f"longest gap= {self._find_longest_data_gap(self.series_no_dupes_no_gaps_no_outliers.to_list())}")
-        self.series_no_dupes_no_gaps_no_outliers = self.series_no_dupes_no_gaps_no_outliers.sort_index()
-        self.series_clean = self.series_no_dupes_no_gaps_no_outliers.ffill()
-        interpolated = self._flag_missing_prices(self.series_no_dupes_no_gaps_no_outliers)
-        interpolated_prices = self.series_clean[interpolated.index]
-        vis.outlier_plot(self.series_clean, interpolated_prices)
+        # For plotting purposes:
+        interpolated_prices = self.series_clean[self.interpolated.index]
+        # vis.outlier_plot(self.series_no_dupes_no_gaps, self.outliers)
+        # vis.outlier_plot(self.series_clean, self.outliers, interpolated_prices)
         
 
-
-        # series_dict = {}
-        # for date in self.series_clean.index:
-        #     price = self.series_clean.loc[date]
-        #     date_str = date.strftime("%Y-%m-%d")
-        #     series_dict.update({date_str : price})
-
-        # date_str = ""
-        # price = 0
-        # series_dict_before = {}
-        # for date in self.series_no_dupes_no_gaps_no_outliers.index:
-        #     price = self.series_no_dupes_no_gaps_no_outliers.loc[date]
-        #     date_str = date.strftime("%Y-%m-%d")
-        #     series_dict_before.update({date_str : price})
-            
-
-        # with open("series_clean.json", "w") as f:
-        #     json.dump(series_dict, f)
-
-        # with open("series_pre.json", "w") as f:
-        #     json.dump(series_dict_before, f)
+    def _handle_outliers(self, series:pd.Series, outliers, raw_dates):
+        series_no_outliers = self._delete_outliers(series, outliers)
+        series_clean = self._remove_date_gaps(raw_dates, series_no_outliers)
+        series_clean = series_clean.sort_index()
+        interpolated = self._flag_missing_prices(series_clean)
+        series_clean = series_clean.ffill()
+        return series_clean, interpolated
 
 
-        exit()
-
+    def _find_outliers(self, series):
+        outliers_right = self._flag_outliers(series, window=self.window_size,
+                                             threshold=self.threshold, eps=self.eps, mad_cap=self.mad_cap,
+                                             func=dat.detect_outliers_modified_z_modified)
+        outliers_left = self._flag_outliers(series, window=self.window_size, # not sure this works/does anything
+                                            threshold=self.threshold, eps=self.eps, mad_cap=self.mad_cap,
+                                            func=dat.detect_outliers_modified_z_modified_left) 
+        isolated_dict = dat.detect_isolated(series, tolerance=3)
+        out2_dict = outliers_right.to_dict()
+        out3_dict = outliers_left.to_dict()
+        outliers = {**isolated_dict, **out2_dict}
+        outliers = {**outliers, **out3_dict}
+        outliers = pd.Series(outliers)
+        outliers.sort_index(inplace=True)
+        return outliers
 
 
     def _unzip_raw_data(self, raw_data):
@@ -388,7 +397,6 @@ class dataCleaner: # filters outliers, interpolates missing data. SET DATA CLEAN
         return outliers
     
 
-
     def _delete_outliers(self, series:pd.Series, outliers:pd.Series):
         # outlier_dates = outliers.index.tolist()
         series_no_outliers = series.drop(outliers.index.to_list())
@@ -420,70 +428,6 @@ class dataCleaner: # filters outliers, interpolates missing data. SET DATA CLEAN
         return longest_gap
 
 
-
-
-    # def _interpolate_missing_values(self, df_outliers_removed): (OLD)
-    #     df = df_outliers_removed
-
-    #     dates_withdata = df.index.tolist() # list of dates for which valid price data exists
-
-    #     datetimes = pd.to_datetime(self.date_index_list)
-    #     prices = df['Filtered_Price'].tolist()
-
-    #     series = pd.Series(data=prices, index=datetimes)
-    #     ser_int = series.interpolate(limit_direction='both', method='time')
-
-    #     # df['Filtered_Price_Interp']= df['Filtered_Price'].interpolate(limit_direction='both', method='polynomial', order='2') # interpolate NaN values
-    #     df['Filtered_Price_Interp'] = ser_int.tolist()
-
-    #     # check for remaining NaN values
-    #     NaN_loc = np.isnan(df['Filtered_Price_Interp']).tolist()
-    #     NaN_loc_indecies = []
-    #     i=0
-    #     c=0
-    #     for item in NaN_loc:
-    #         if item == True:
-    #             NaN_loc_indecies.append(i)
-    #             c += 1
-    #         i += 1
-    #     if c != 0:
-    #         print(f"NaN values: {c} at {NaN_loc_indecies}" ) # show message if NaN values still present
-
-    #     return df
-    
-
-
-
     def data_report(self): # TO DO: give report on data quality and cleaning done (outliers, missing data, dupes, etc)
         
         pass
-
-    
-    def plot_cleaned_data(self, start_date=date(1900,1,1), end_date=date(1900,1,1)):
-
-        df = self.df # type: pd.DataFrame
-        df.index = pd.to_datetime(df.index)
-
-        if start_date == date(1900,1,1): start_date = df.index.min()
-        if end_date == date(1900,1,1): end_date = df.index.max()
-
-        start_date = pd.to_datetime(start_date)
-        end_date = pd.to_datetime(end_date)
-
-        mask = (df.index >= start_date) & (df.index <= end_date)
-
-        plt.figure(figsize=(10, 6))
-        plt.plot(df.index[mask], \
-                 df['Price'].loc[mask], \
-                    marker='o', label='Original Prices')
-        plt.plot(df.index[mask], \
-                 df['Filtered_Price_Interp'].loc[mask], \
-                    marker='x', linestyle='--', color='red', label='Filtered and Inteerpolated Prices')
-
-        # plt.plot(df.index, df['Price'], marker='o', label='Original Prices')
-        # plt.plot(df.index, df['Filtered_Price'], marker='x', linestyle='--', color='red', label='Filtered Prices')
-        plt.xlabel('Date')
-        plt.ylabel('Price')
-        plt.title('Local IQR Outlier Removal')
-        plt.legend()
-        plt.show()
