@@ -57,35 +57,30 @@ def detect_outliers_modified_z_modified_left(s, window, threshold, eps, mad_cap)
 
 
 def detect_isolated(s:pd.Series, tolerance):
-    mask = s.notna()
-    cleaned = s.copy()
     isolated_dict = {}
-
-    rolling_sum  = s.rolling(window=tolerance, center=True, min_periods=4).sum()
 
     s_dates = s.index.tolist()
     s_prices = s.array.tolist()
     # s_list = []
     # for i in range(len(s_dates)):
     #     s_list.append([s_dates[i], s_prices[i]])
+    nan_mask = []
+    for p in s_prices:
+        if np.isnan(p):
+            nan_mask.append(False)
+        else:
+            nan_mask.append(True)
 
 
     for i in range(len(s_dates)):
         if not np.isnan(s_prices[i]):
             left = max(0, i - tolerance)
             right = min(len(s_dates), i + tolerance)
-                   
+            window = nan_mask[left:right]
+            print(sum(window))
+            if sum(window) <= 2:
+                isolated_dict.update({s_dates[i]: s_prices[i]})
 
-
-
-    for i in range(len(s)):
-        if not pd.isna(s.iloc[i]):
-            left = max(0, i - tolerance)
-            right = min(len(s), i + tolerance)
-            window = mask.iloc[left:right]
-            if window.sum() <= 1:
-                # cleaned.iloc[i] = np.nan
-                isolated_dict.update({s.iloc[i].index, s.iloc[i].value})
     return isolated_dict
 
 

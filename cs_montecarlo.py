@@ -37,7 +37,7 @@ def sub_main():
     
     # TEST:
     test_inv_raw_data = fn.loadJSON(
-    r"F:\programs\python\cs_montecarlo\data\one-item-inv.json" # filepath of list of inv items, from steam web api
+    r"F:\programs\python\cs_montecarlo\data\three-item-inv.json" # filepath of list of inv items, from steam web api
         ).data
  
     # HOW TO GET VALUES:

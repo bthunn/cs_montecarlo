@@ -283,6 +283,7 @@ class dataCleaner: # filters outliers, interpolates missing data. SET DATA CLEAN
 
         self.series_no_dupes_no_gaps = self._construct_series(raw_data, raw_dates, raw_prices)
         # outliers_rolling_med = self._flag_outliers_med(self.series_no_dupes_no_gaps, window = 10, threshold=20)
+
         outliers_right = self._flag_outliers(self.series_no_dupes_no_gaps, window=self.window_size,
                                              threshold=self.threshold, eps=self.eps, mad_cap=self.mad_cap,
                                              func=dat.detect_outliers_modified_z_modified) # outliers is a series
@@ -290,8 +291,6 @@ class dataCleaner: # filters outliers, interpolates missing data. SET DATA CLEAN
                                             threshold=self.threshold, eps=self.eps, mad_cap=self.mad_cap,
                                             func=dat.detect_outliers_modified_z_modified_left) # outliers is a series
         isolated_dict = dat.detect_isolated(self.series_no_dupes_no_gaps, tolerance=3)
-
-        
         # out1_dict = outliers_rolling_med.to_dict()
         # print(out1_dict)
         out2_dict = outliers_right.to_dict()
@@ -303,7 +302,7 @@ class dataCleaner: # filters outliers, interpolates missing data. SET DATA CLEAN
         # self.outliers = {**out2_dict, **out3_dict}
         self.outliers = pd.Series(self.outliers)
         self.outliers.sort_index(inplace=True)
-        print(self.outliers)
+        # print(self.outliers)
 
         vis.outlier_plot(self.series_no_dupes_no_gaps, self.outliers)
         series_no_outliers = self._delete_outliers(self.series_no_dupes_no_gaps, self.outliers)
