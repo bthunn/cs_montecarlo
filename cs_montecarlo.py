@@ -54,11 +54,7 @@ def sub_main():
     # sim = Simulation(test_inventory)
 
 
-    # price_getter = PriceGetter(item_list=test_inventory.item_list_marketable, cookies=cookies)
-    # # format of item_price_list is a list of price data responses, so a list of dictionaries
-    # item_price_list = price_getter.get_data_for_item_list() 
-    # with open(f'data\\test-inv-price-data-set-{date.today()}.json', 'w', encoding="utf-8") as file:
-    #         file.write(json.dumps(item_price_list, ensure_ascii=False))
+
 
 
 
@@ -68,5 +64,26 @@ def get_request(item_name, skin_name, condition):
     endpoint = f'{BASE_URL}?country={country}&currency={currency}\\&appid=730&market_hash_name={item_name}%20|%20{skin_name}%20({condition})'
     return endpoint
 
+
+def get_item_price_history(item_list):
+    price_getter = PriceGetter(item_list=item_list.item_list_marketable, cookies=cookies)
+    # format of item_price_list is a list of price data responses, so a list of dictionaries
+    item_price_list = price_getter.get_data_for_item_list() 
+    with open(f'data\\test-inv-price-data-set-{date.today()}.json', 'w', encoding="utf-8") as file:
+            file.write(json.dumps(item_price_list, ensure_ascii=False))
+
+
 if __name__ == "__main__":
       main()
+
+
+
+
+
+# Random code:    
+# 
+
+
+
+
+
