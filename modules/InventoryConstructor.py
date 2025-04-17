@@ -359,13 +359,6 @@ class dataCleaner: # filters outliers, interpolates missing data. SET DATA CLEAN
 
 
     def _construct_series(self, raw_data, raw_dates, raw_prices):
-        # Construct dataframe operations:
-        # 1. Get raw price data (done)
-        # 2. Remove duplicates (done)
-        # 3. Add missing dates (done)
-        # 4. Remove Outliers (NOT WORKING)
-        # 5. Interpolate missing values (NOT WORKING)
-
         series_no_dupes = self._consolidate_duplicate_data(raw_data)
         series_no_dupes_no_gaps = self._remove_date_gaps(raw_dates, series_no_dupes)
 

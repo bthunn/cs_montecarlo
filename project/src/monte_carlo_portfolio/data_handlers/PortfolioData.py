@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 import utils as ut
-
+from project.src.monte_carlo_portfolio.data_handlers.PriceHandlers import ItemPrice
 
 class PortfolioData:
     def __init__(self, item_list, price_data_dir_path):
@@ -13,8 +13,6 @@ class PortfolioData:
         self.item_list = item_list
 
         self._check_item_data_exists(price_data_dir_path)
-
-
 
     
     def _check_item_list(item_list):
@@ -44,26 +42,6 @@ class PortfolioData:
     def _get_processed_series():
         pass
         
-
-class ProcessedSeries:
-    def __init__(self, raw:list[list[Any]]):
-        # data passed in as 2d list
-        pass
-
-    def _
-
-
-class ItemPrice:
-    def __init__(self, item_name:str, base_path:str):
-        self.item_name = item_name
-        self.base_path = base_path
-
-    def _get_item_data(self):
-        item_filepath = f"{self.base_path}/{self.item_name}"
-        if not os.path.exists(item_filepath):
-            raise Exception(f"Faild to load data for {self.item_name}, file not found at: \'{item_filepath}\'")
-        return ut.load_json(item_filepath)
-
 
 print()
 

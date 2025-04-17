@@ -10,15 +10,9 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 from data_handlers.ItemLoaders import ItemLoaderStrategy, LoadFromListJSON, LoadFromInvJSON, LoadFromInvID
-from data_handlers.PriceHandlers import ItemPrice
+from data_handlers.PriceHandlers import ItemData
+from data_handlers.OutlierMethods import OutlierStrategy, OutlierParams, Raw, ModifiedZ, ModifiedZParams
 
-# from modules.PriceGetter import PriceGetter
-# from modules import functions as fn
-# from modules.InventoryConstructor import InventoryData
-# from modules.Simulation import Simulation
-# from modules import visuals as vis
-
-# import any cfg files here
 
 def main():
     # main flow:
@@ -32,13 +26,22 @@ def main():
     # LoadFromInvJSON - load from inv JSON from API
     # LoadFromInvID - load from inv ID, gets from API
 
-    file_path = r"project/data/raw_data/inventories/two-item-inv.json"
+    file_path = r"project/data/raw_data/inventories/one-item-inv.json"
     strategy = LoadFromInvJSON(path=file_path, marketable=True)
     item_list = strategy.get_list()
 
     price_base_path = r"project/data/raw_data/item_prices/price-data-2024-10-28"
-    item_data = ItemPrice(item_list[0], price_base_path).get_raw_series()
-    print(item_data)
+    # Parameters for the outlier detection method
+    outlier_params = ModifiedZParams(window=7, threshold=3.5, eps=1, mad_cap=np.inf)
+    item_data = ItemData(item_list[0], price_base_path, ModifiedZ, outlier_params)
+    print(f"data: \n{item_data.series}")
+    print(f"outliers: \n{item_data.outliers}")
+    print(f"filled: \n{item_data.filled_data}")
+
+
+
+
+
 
 
     
