@@ -27,9 +27,10 @@ class InterpStrategy(ABC):
 
 
 class Ffill(InterpStrategy):
+    # uses ffill().bfill(), only dates at start bfilled if missing
     def __init__(self, series:pd.Series):
-        self.series_filled = series.ffill()
         filled_dates = self._find_missing_data(series).index
+        self.series_filled = series.ffill().bfill()
         self.filled = self.series_filled[filled_dates]
 
     def get_interpolated_series(self):
@@ -37,5 +38,4 @@ class Ffill(InterpStrategy):
     
     def get_interpolated_data(self):
         return self.filled
-
-
+    

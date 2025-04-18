@@ -7,10 +7,15 @@ from abc import ABC, abstractmethod
 
 import utils as ut
 
-
+# 
 class OutlierParams(ABC):
+    @property
     @abstractmethod
-    def get_params_as_tuple(self) -> list:
+    def window(self):
+        pass
+
+    @abstractmethod
+    def get_params_as_dict(self) -> dict:
         pass
 
 
@@ -36,18 +41,29 @@ class Raw(OutlierStrategy):
 # runs both ways over series to deal with edges and increase reliability
 class ModifiedZParams(OutlierParams):
     def __init__(self, window:int=7, threshold=3.5, eps=1, mad_cap=np.inf):
-        self.window = window
+        self._window = window
         self.threshold = threshold
         self.eps = eps
         self.mad_cap = mad_cap
 
+    @property
+    def window(self): return self._window
+
     def get_params_as_tuple(self):
-        return (self.window, self.threshold, self.eps, self.mad_cap)
+        d = self.get_params_as_dict()
+        return (d['window'], d['threshold'], d['eps'], d['mad_cap'])
+    
+    def get_params_as_dict(self):
+        return {'window':self.window, 'threshold':self.threshold, 'eps':self.eps,
+                'mad_cap':self.mad_cap}
         
 
 class ModifiedZ(OutlierStrategy):
     def __init__(self, raw_series:pd.Series, params:ModifiedZParams):
-        window, threshold, eps, mad_cap = params.get_params_as_tuple()
+        window = params.window
+        threshold = params.threshold
+        eps = params.eps
+        mad_cap = params.mad_cap
         self.outliers = self._detect_outliers(raw_series, window, threshold, eps, mad_cap)
 
     def get_outliers(self):

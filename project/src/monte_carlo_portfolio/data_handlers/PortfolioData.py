@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 import utils as ut
-from project.src.monte_carlo_portfolio.data_handlers.PriceHandlers import ItemPrice
+from project.src.monte_carlo_portfolio.data_handlers.ItemData import ItemPrice
 
 class PortfolioData:
     def __init__(self, item_list, price_data_dir_path):
