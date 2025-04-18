@@ -11,7 +11,7 @@ import utils as ut
 class OutlierParams(ABC):
     @property
     @abstractmethod
-    def window(self):
+    def window(self) -> int:
         pass
 
     @abstractmethod
